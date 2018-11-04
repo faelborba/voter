@@ -13,7 +13,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.io.UnsupportedEncodingException;
 import java.lang.reflect.Type;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.List;
 
 @Service
@@ -103,6 +106,9 @@ public class VoterService {
         if (StringUtils.isBlank(voterInput.getName())){
             throw new GenericOutputException("Invalid name");
         }
+        if (validateName(voterInput)){
+            throw new GenericOutputException("Invalid name");
+        }
         if (!StringUtils.isBlank(voterInput.getPassword())){
             if (!voterInput.getPassword().equals(voterInput.getPasswordConfirm())){
                 throw new GenericOutputException("Passwords doesn't match");
@@ -111,6 +117,41 @@ public class VoterService {
             if (!isUpdate) {
                 throw new GenericOutputException("Password doesn't match");
             }
+        }
+
+        convertToMD5(voterInput);//converter senha para MD5
+
+        List<Voter> voterList = (List<Voter>) voterRepository.findAll();
+        for (Voter vot: voterList) {// verificando emails iguais
+            if(voterInput.getEmail().equals(vot.getEmail())){
+                throw new GenericOutputException("Error! E-mail already registered!");
+            }
+        }
+    }
+
+    private boolean validateName(VoterInput voterInput){
+        if(voterInput.getName().split(" ").length == 1){// verificando se tem somente o primeiro nome
+            return true;
+        }
+        if(voterInput.getName().split(" ")[0].length() <= 5){
+            return true;
+        }
+        return false;
+    }
+
+    private void convertToMD5(VoterInput voterInput){// metodo que converte a senha para md5
+        try {
+            byte messageDigest[] = MessageDigest.getInstance("MD5").digest(voterInput.getPassword().getBytes("UTF-8"));
+            StringBuilder hexString = new StringBuilder();
+            for(byte b : messageDigest){
+                hexString.append(String.format("%02x", 0xFF & b));
+            }
+            voterInput.setPassword(hexString.toString());
+            //System.out.println("Teste Password com md5: " + voterInput.getPassword());
+        } catch (NoSuchAlgorithmException e) {
+            e.printStackTrace();
+        } catch (UnsupportedEncodingException e) {
+            e.printStackTrace();
         }
     }
 
