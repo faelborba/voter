@@ -106,7 +106,7 @@ public class VoterService {
         if (StringUtils.isBlank(voterInput.getName())){
             throw new GenericOutputException("Invalid name");
         }
-        if (validateName(voterInput)){
+        if (validateName(voterInput.getName())){
             throw new GenericOutputException("Invalid name");
         }
         if (!StringUtils.isBlank(voterInput.getPassword())){
@@ -129,11 +129,11 @@ public class VoterService {
         }
     }
 
-    private boolean validateName(VoterInput voterInput){
-        if(voterInput.getName().split(" ").length == 1){// verificando se tem somente o primeiro nome
+    private boolean validateName(String name){
+        if(name.split(" ").length == 1){// verificando se tem somente o primeiro nome
             return true;
         }
-        if(voterInput.getName().split(" ")[0].length() <= 5){
+        if(name.split(" ")[0].length() < 5){// verificando a quantidade de caracteres do primeiro nome
             return true;
         }
         return false;
@@ -147,7 +147,6 @@ public class VoterService {
                 hexString.append(String.format("%02x", 0xFF & b));
             }
             voterInput.setPassword(hexString.toString());
-            //System.out.println("Teste Password com md5: " + voterInput.getPassword());
         } catch (NoSuchAlgorithmException e) {
             e.printStackTrace();
         } catch (UnsupportedEncodingException e) {
