@@ -13,10 +13,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
-import java.io.UnsupportedEncodingException;
 import java.lang.reflect.Type;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.util.List;
 
 @Service
@@ -45,6 +42,7 @@ public class VoterService {
 
     public VoterOutput create(VoterInput voterInput) {
         validateInput(voterInput, false);
+        checkEmailDuplicate(voterInput.getEmail(), null);
         Voter voter = modelMapper.map(voterInput, Voter.class);
         voter.setPassword(passwordEncoder.encode(voter.getPassword()));
         voter = voterRepository.save(voter);
@@ -69,6 +67,7 @@ public class VoterService {
             throw new GenericOutputException(MESSAGE_INVALID_ID);
         }
         validateInput(voterInput, true);
+        checkEmailDuplicate(voterInput.getEmail(), voterId);
 
         Voter voter = voterRepository.findById(voterId).orElse(null);
         if (voter == null){
@@ -99,14 +98,18 @@ public class VoterService {
         return new GenericOutput("Voter deleted");
     }
 
+    private void checkEmailDuplicate(String email, Long currentVoter){
+        Voter voter = voterRepository.findFirstByEmail(email);
+        if (voter != null && !voter.getId().equals(currentVoter)){
+            throw new GenericOutputException("Duplicate email");
+        }
+    }
+
     private void validateInput(VoterInput voterInput, boolean isUpdate){
         if (StringUtils.isBlank(voterInput.getEmail())){
             throw new GenericOutputException("Invalid email");
         }
-        if (StringUtils.isBlank(voterInput.getName())){
-            throw new GenericOutputException("Invalid name");
-        }
-        if (validateName(voterInput.getName())){
+        if (StringUtils.isBlank(voterInput.getName()) || voterInput.getName().trim().length() < 5 || !voterInput.getName().trim().contains(" ")) {
             throw new GenericOutputException("Invalid name");
         }
         if (!StringUtils.isBlank(voterInput.getPassword())){
@@ -117,40 +120,6 @@ public class VoterService {
             if (!isUpdate) {
                 throw new GenericOutputException("Password doesn't match");
             }
-        }
-
-        convertToMD5(voterInput);//converter senha para MD5
-
-        List<Voter> voterList = (List<Voter>) voterRepository.findAll();
-        for (Voter vot: voterList) {// verificando emails iguais
-            if(voterInput.getEmail().equals(vot.getEmail())){
-                throw new GenericOutputException("Error! E-mail already registered!");
-            }
-        }
-    }
-
-    private boolean validateName(String name){
-        if(name.split(" ").length == 1){// verificando se tem somente o primeiro nome
-            return true;
-        }
-        if(name.split(" ")[0].length() < 5){// verificando a quantidade de caracteres do primeiro nome
-            return true;
-        }
-        return false;
-    }
-
-    private void convertToMD5(VoterInput voterInput){// metodo que converte a senha para md5
-        try {
-            byte messageDigest[] = MessageDigest.getInstance("MD5").digest(voterInput.getPassword().getBytes("UTF-8"));
-            StringBuilder hexString = new StringBuilder();
-            for(byte b : messageDigest){
-                hexString.append(String.format("%02x", 0xFF & b));
-            }
-            voterInput.setPassword(hexString.toString());
-        } catch (NoSuchAlgorithmException e) {
-            e.printStackTrace();
-        } catch (UnsupportedEncodingException e) {
-            e.printStackTrace();
         }
     }
 
