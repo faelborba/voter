@@ -1,4 +1,4 @@
-package br.edu.ulbra.election.voter.output.v1;
+ package br.edu.ulbra.election.voter.output.v1;
 
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
